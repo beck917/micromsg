@@ -1,4 +1,5 @@
 import Vue from 'vue'
+import Vuex from 'vuex'
 import 'muse-components/styles/base.less' // 全局样式包含 normalize.css
 
 import appBar from 'muse-components/appBar'
@@ -19,6 +20,7 @@ import { card, cardTitle, cardMedia, cardText, cardActions, cardHeader } from 'm
 import App from './App.vue'
 import VueRouter from "vue-router";
 Vue.use(VueRouter);
+Vue.use(Vuex)
 
 import { bottomNav, bottomNavItem } from 'muse-components/bottomNav'
 import { gridList, gridTile } from 'muse-components/gridList'
@@ -86,11 +88,64 @@ const router = new VueRouter({
         component: (resolve) => {
             require.ensure([], () => resolve(require('./components/Login.vue')), 'index');
         }
+    }, {
+        path: '/chat',
+        component: (resolve) => {
+            require.ensure([], () => resolve(require('./components/Chat.vue')), 'chat');
+        }
     }]
+})
+
+var socket = {};
+connect(); // 自动连接
+
+function connect() {
+    // 连接OR断开socket
+    if (!socket.readyState || socket.readyState != 1) {
+        socket = new WebSocket("ws://" + location.hostname +":9127");
+    } else {
+        socket.close();
+    }
+
+    socket.onopen = function() {
+        // Web Socket 已连接上，使用 send() 方法发送数据
+        console.log("Web Socket 已连接上");
+    };
+
+    socket.onmessage = function(evt) {
+        var res = JSON.parse(evt.data);
+        // console.log(res);
+        if (res.replymethod == 'login' && res.result == 1) {
+            console.log("login success", res);
+            store.state.contacts = res.data.contacts
+            router.push('contacts')
+        }
+
+        if (res.replymethod == 'send') {
+
+        } else if (res.replymethod == 'open') {
+
+        } else if (res.replymethod == 'add') {
+            console.log("booking", res);
+        }
+    };
+
+    socket.onclose = function() {
+        console.error("Web Socket 已经断开");
+    }
+}
+
+const store = new Vuex.Store({
+    state: {
+        // 存放用户
+        socket: socket,
+        contacts: []
+    }
 })
 
 new Vue({
     router: router,
     el: '#app',
+    store,
     render: h => h(App)
 })

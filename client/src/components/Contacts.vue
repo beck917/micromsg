@@ -67,7 +67,8 @@
         },
         methods: {
             open() {
-                this.dialog = true
+                this.dialog = false
+                this.$router.push("chat")
             },
             close() {
                 this.dialog = false

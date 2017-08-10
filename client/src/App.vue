@@ -1,9 +1,11 @@
 <template>
     <div id="app">
         <header class="header">
+            <!--
             <mu-appbar :title="current" class="common-top-bar">
                 <mu-icon-button icon="menu" slot="left"/>
             </mu-appbar>
+            -->
         </header>
         <router-view class="view"></router-view>
         <footer class="footer">
