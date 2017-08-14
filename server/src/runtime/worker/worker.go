@@ -42,6 +42,8 @@ func main() {
 	worker.InnerServer.HandleFunc(opcodes.APP_SEND, controllers.SendHandler)
 	worker.InnerServer.HandleFunc(opcodes.APP_ADD, controllers.AddHandler)
 	worker.InnerServer.HandleFunc(opcodes.APP_OPEN, controllers.OpenHandler)
+	worker.InnerServer.HandleFunc(opcodes.APP_DELETE, controllers.DeleteHandler)
+	worker.InnerServer.HandleFunc(opcodes.APP_DELETE_MSG, controllers.DeleteMsgHandler)
 	worker.InnerServer.HandleFunc(pillx.SYS_ON_MESSAGE, controllers.OnMessageHandler)
 	<-(chan int)(nil)
 	//worker.Watch()

@@ -51,8 +51,14 @@ func (this *UserContacts) Insert(user *entities.UserContacts) (int, error) {
 	return int(affected), err
 }
 
-func (this *UserContacts) Delete() (int, error) {
-	affected, err := this.Model.DB.XORM.Delete(this.UserContactsEntity)
+func (this *UserContacts) Delete(id int) (int, error) {
+	affected, err := this.Model.DB.XORM.Id(id).Delete(this.UserContactsEntity)
+
+	return int(affected), err
+}
+
+func (this *UserContacts) DeleteByUidCid(uid int, cid int) (int, error) {
+	affected, err := this.Model.DB.XORM.Where("uid = ? and cid = ?", uid, cid).Delete(this.UserContactsEntity)
 
 	return int(affected), err
 }

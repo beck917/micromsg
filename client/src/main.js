@@ -16,6 +16,8 @@ import dialog from 'muse-components/dialog'
 import divider from 'muse-components/divider'
 import badge from 'muse-components/badge'
 import subHeader from 'muse-components/subHeader'
+//import iconMenu from 'muse-components/iconMenu'
+//import {menu, menuItem} from 'muse-components/menu'
 import { card, cardTitle, cardMedia, cardText, cardActions, cardHeader } from 'muse-components/card'
 import App from './App.vue'
 import VueRouter from "vue-router";
@@ -64,6 +66,9 @@ Vue.component(list.name, list)
 Vue.component(listItem.name, listItem)
 Vue.component(tabs.name, tabs)
 Vue.component(tab.name, tab)
+//Vue.component(iconMenu.name, iconMenu)
+//Vue.component(menuItem.name, menuItem)
+//Vue.component(menu.name, menu)
 
 Vue.component(swiper.name, swiper)
 Vue.component(swiperSlide.name, swiperSlide)
@@ -142,7 +147,16 @@ function connect() {
             store.state.msg_list = rev_arr(res.data.msg_list)
             router.push('chat')
         } else if (res.replymethod == 'add') {
-            console.log("booking", res);
+            console.log("add", res);
+            store.state.contacts.push(res.data.contact);
+        } else if (res.replymethod == 'delete') {
+            console.log("delete", res);
+            for (var i = 0; i < store.state.contacts.length; i++) {
+                if (store.state.contacts[i].cid == store.state.open_id) {
+                    store.state.contacts.splice(i, 1)
+                }
+            }
+            store.state.open_id = 0
         } else if (res.replymethod == 'pushmsg') {
             console.log("pushmsg", res);
 

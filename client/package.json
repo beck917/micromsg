@@ -10,7 +10,7 @@
     "start": "webpack-dev-server --colors --host 0.0.0.0 --port 8080"
   },
   "dependencies": {
-    "muse-ui": "^2.0.2",
+    "muse-ui": "^2.0.3",
     "stylus": "^0.54.5",
     "stylus-loader": "^3.0.1",
     "vue": "^2.2.1",
