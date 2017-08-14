@@ -23,6 +23,12 @@ func (this *User) GetUserByName(username string) (has bool, err error) {
 	return has, err
 }
 
+func (this *User) GetUserById(id int) (has bool, err error) {
+	has, err = this.Model.DB.XORM.Id(id).Get(this.UserEntity)
+
+	return has, err
+}
+
 func (this *User) Insert(user *entities.User) (int, error) {
 	affected, err := this.Model.DB.XORM.Insert(user)
 	if err != nil {

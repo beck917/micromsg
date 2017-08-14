@@ -34,4 +34,5 @@ func main() {
 	gateway.OuterProtocol = &pillx.WebSocketProtocol{}
 	gateway.EtcdClient = etcdClient
 	gateway.Init()
+	<-(chan int)(nil)
 }

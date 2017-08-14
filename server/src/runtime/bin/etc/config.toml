@@ -1,0 +1,23 @@
+[mysql]
+Host = "MYSQL_HOST"
+Port = 3306
+User = "user"
+Password = "password"
+DBname = "micromsg"
+
+[etcd]
+Host = "ETCD_HOST:2379"
+
+[pillx]
+GatewayOuterHost = "127.0.0.1"
+GatewayOuterPort = 9127
+GatewayInnerHost = "127.0.0.1"
+GatewayInnerPort = 10086
+WorkerInnerHost = "127.0.0.1"
+WorkerInnerPort = 18600
+GatewayName     = "localgateway"
+WorkerName      = "localworker"
+
+[Log]
+#logs/%s_%s.log
+Value = ""

@@ -11,18 +11,6 @@
                 </template>
             </mu-list>
         </mobile-tear-sheet>
-        <mu-dialog :open="dialog" @close="close" title="聊天" scrollable>
-            <mu-list>
-                <template v-for="item in list">
-                    <mu-list-item :title="item">
-                        <mu-avatar src="/images/avatar5.jpg" slot="leftAvatar"/>
-                    </mu-list-item>
-                    <mu-divider/>
-                </template>
-            </mu-list>
-            <mu-text-field multiLine :rows="1" :rowsMax="6" hintText="请输入聊天内容" slot="actions"/><mu-flat-button @click="add" icon="add" label="发送" primary slot="actions"/><br/>
-            <mu-flat-button primary label="关闭" @click="close" slot="actions"/>
-        </mu-dialog>
     </section>
 </template>
 <script>

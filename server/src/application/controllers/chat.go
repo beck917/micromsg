@@ -115,6 +115,7 @@ type SendJson struct {
 	Msg    string `json:"msg"`
 }
 
+//发送消息
 func SendHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	req := protocol.(*pillx.GateWayProtocol)
 
@@ -148,6 +149,24 @@ func SendHandler(client *pillx.Response, protocol pillx.IProtocol) {
 		returnMsg(helpers.GlobalUidBindClientId[jsonData.RecvId].ClientId, retjson)
 	}
 
+	//判断A是否是B的联系人
+	userContactsModel := models.NewUserContacts()
+	has, _ := userContactsModel.GetContactByUidCid(jsonData.RecvId, uid)
+	if has == false {
+		userModel := models.NewUser()
+		userModel.GetUserById(jsonData.RecvId)
+		//添加联系人
+		userContactsEntity := userContactsModel.UserContactsEntity
+		userContactsEntity.Id = 0
+		userContactsEntity.Uid = jsonData.RecvId
+		userContactsEntity.Cid = uid
+		userContactsEntity.Cname = userModel.UserEntity.Name
+		userContactsEntity.Unread = 0
+		userContactsEntity.CreatedTime = entities.JsonTime(time.Now())
+		userContactsEntity.UpdatedTime = entities.JsonTime(time.Now())
+		userContactsModel.Insert(userContactsEntity)
+	}
+
 	userMsgModel := models.NewUserMsg()
 	userMsgModel.UserMsgEntity.Id = 0
 	userMsgModel.UserMsgEntity.Msg = jsonData.Msg
@@ -159,7 +178,6 @@ func SendHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	userMsgModel.Insert(userMsgModel.UserMsgEntity)
 
 	//记录条数
-	userContactsModel := models.NewUserContacts()
 	userContactsModel.UpdateUnread(jsonData.RecvId, uid, 1)
 
 	retjson, _ := retJson("send", "发送成功", 1, nil)
@@ -174,6 +192,7 @@ type RetOpenData struct {
 	MsgList []*entities.UserMsg `json:"msg_list"`
 }
 
+//打开消息界面
 func OpenHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	req := protocol.(*pillx.GateWayProtocol)
 
@@ -182,18 +201,18 @@ func OpenHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	jsonErr := json.Unmarshal(req.Content, jsonData)
 	if jsonErr != nil {
 		//记录错误
-		retjson, _ := retJson("send", "数据格式错误", 90001, nil)
+		retjson, _ := retJson("open", "数据格式错误", 90001, nil)
 		returnMsg(req.Header.ClientId, retjson)
-		logger.WithField("controller", "send").Error(jsonErr)
+		logger.WithField("controller", "open").Error(jsonErr)
 		return
 	}
 
 	uid := helpers.GlobalClientIdBindUid[req.Header.ClientId]
 	if uid == 0 {
 		//记录错误
-		retjson, _ := retJson("send", "用户没有登录", 90002, nil)
+		retjson, _ := retJson("open", "用户没有登录", 90002, nil)
 		returnMsg(req.Header.ClientId, retjson)
-		logger.WithField("controller", "send").Error("")
+		logger.WithField("controller", "open").Error("")
 		return
 	}
 
@@ -211,7 +230,78 @@ func OpenHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	returnMsg(req.Header.ClientId, retjson)
 }
 
+type AddJson struct {
+	AddName string `json:"add_name"`
+}
+
+type RetAddData struct {
+	Contact *entities.User `json:"contact"`
+}
+
+//添加联系人
 func AddHandler(client *pillx.Response, protocol pillx.IProtocol) {
+	req := protocol.(*pillx.GateWayProtocol)
+
+	//解析content
+	jsonData := &AddJson{}
+	jsonErr := json.Unmarshal(req.Content, jsonData)
+	if jsonErr != nil {
+		//记录错误
+		retjson, _ := retJson("add", "数据格式错误", 90001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "add").Error(jsonErr)
+		return
+	}
+
+	uid := helpers.GlobalClientIdBindUid[req.Header.ClientId]
+	if uid == 0 {
+		//记录错误
+		retjson, _ := retJson("add", "用户没有登录", 90002, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "add").Error("")
+		return
+	}
+
+	//获取联系人数据
+	userModel := models.NewUser()
+	has, _ := userModel.GetUserByName(jsonData.AddName)
+
+	if has == false {
+		//返回错误
+		retjson, _ := retJson("add", "用户名不存在", 10001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		return
+	}
+
+	userContactsModel := models.NewUserContacts()
+	userContactsEntity := userContactsModel.UserContactsEntity
+	userContactsEntity.Id = 0
+	userContactsEntity.Uid = uid
+	userContactsEntity.Cid = userModel.UserEntity.Id
+	userContactsEntity.Cname = userModel.UserEntity.Name
+	userContactsEntity.Unread = 0
+	userContactsEntity.CreatedTime = entities.JsonTime(time.Now())
+	userContactsEntity.UpdatedTime = entities.JsonTime(time.Now())
+	userContactsModel.Insert(userContactsEntity)
+
+	retAddData := &RetAddData{}
+	retAddData.Contact = userModel.UserEntity
+
+	retjson, _ := retJson("add", "添加联系人成功", 1, retAddData)
+	returnMsg(req.Header.ClientId, retjson)
+}
+
+type DeleteJson struct {
+	DeleteId int `json:"delete_id"`
+}
+
+//删除联系人
+func DeleteHandler(client *pillx.Response, protocol pillx.IProtocol) {
+
+}
+
+//删除消息
+func DeleteMsgHandler(client *pillx.Response, protocol pillx.IProtocol) {
 
 }
 

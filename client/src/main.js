@@ -101,6 +101,7 @@ connect(); // 自动连接
 
 var uid = 0
 var open_id = 0
+
 function connect() {
     // 连接OR断开socket
     if (!socket.readyState || socket.readyState != 1) {
@@ -125,8 +126,9 @@ function connect() {
         }
 
         if (res.replymethod == 'send') {
-
+            console.log("send", res);
         } else if (res.replymethod == 'open') {
+            console.log("open", res);
             for (var i = 0; i < store.state.contacts.length; i++) {
                 if (store.state.contacts[i].cid == store.state.open_id) {
                     store.state.contacts[i].unread = 0;
@@ -139,21 +141,20 @@ function connect() {
 
             store.state.msg_list = rev_arr(res.data.msg_list)
             router.push('chat')
-            window.scrollTo(0, 900000)
         } else if (res.replymethod == 'add') {
             console.log("booking", res);
         } else if (res.replymethod == 'pushmsg') {
             console.log("pushmsg", res);
 
-            //if (res.data.send_id == store.state.open_id) {
-            var msg_data = {
-                msg: res.data.msg,
-                send_uid: res.data.send_id,
-                recv_uid: res.data.recv_id,
+            if (res.data.send_id == store.state.open_id) {
+                var msg_data = {
+                    msg: res.data.msg,
+                    send_uid: res.data.send_id,
+                    recv_uid: res.data.recv_id,
+                }
+                store.state.msg_list.push(msg_data)
+                window.scrollTo(0, 900000)
             }
-            store.state.msg_list.push(msg_data)
-            window.scrollTo(0, 900000)
-            //}
             //刷新联系人列表
             for (var i = 0; i < store.state.contacts.length; i++) {
                 if (store.state.contacts[i].cid == res.data.send_id) {

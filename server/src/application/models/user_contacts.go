@@ -39,8 +39,20 @@ func (this *UserContacts) GetContactsListByUid(uid int) (contactsList []*entitie
 	return
 }
 
+func (this *UserContacts) GetContactByUidCid(uid int, cid int) (has bool, err error) {
+	has, err = this.Model.DB.XORM.Where("uid = ? and cid = ?", uid, cid).Get(this.UserContactsEntity)
+
+	return has, err
+}
+
 func (this *UserContacts) Insert(user *entities.UserContacts) (int, error) {
 	affected, err := this.Model.DB.XORM.Insert(user)
+
+	return int(affected), err
+}
+
+func (this *UserContacts) Delete() (int, error) {
+	affected, err := this.Model.DB.XORM.Delete(this.UserContactsEntity)
 
 	return int(affected), err
 }

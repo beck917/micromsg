@@ -9,7 +9,7 @@
             <div style="height:50px"></div>
             <div class="chat">
                 <div v-for="obj in this.$store.state.msg_list">
-                    <othermsg v-if="obj.send_uid != uid" :head="'/dist/images/a'+obj.recv_uid+'.jpg'" :msg="obj.msg"
+                    <othermsg v-if="obj.send_uid != uid" :head="'/dist/images/a'+obj.send_uid+'.jpg'" :msg="obj.msg"
                               ></othermsg>
                     <mymsg v-if="obj.send_uid == uid" :head="'/dist/images/a'+obj.send_uid+'.jpg'" :msg="obj.msg"
                     ></mymsg>
@@ -68,6 +68,10 @@
         components: {
             Mymsg,
             Othermsg
+        },
+        mounted(){
+            //  挂载结束状态
+            window.scrollTo(0, 900000)
         }
     }
 </script>
