@@ -1,4 +1,5 @@
 import Vue from 'vue'
+import Vuex from 'vuex'
 import 'muse-components/styles/base.less' // 全局样式包含 normalize.css
 
 import appBar from 'muse-components/appBar'
@@ -19,6 +20,7 @@ import { card, cardTitle, cardMedia, cardText, cardActions, cardHeader } from 'm
 import App from './App.vue'
 import VueRouter from "vue-router";
 Vue.use(VueRouter);
+Vue.use(Vuex)
 
 import { bottomNav, bottomNavItem } from 'muse-components/bottomNav'
 import { gridList, gridTile } from 'muse-components/gridList'
@@ -86,11 +88,110 @@ const router = new VueRouter({
         component: (resolve) => {
             require.ensure([], () => resolve(require('./components/Login.vue')), 'index');
         }
+    }, {
+        path: '/chat',
+        component: (resolve) => {
+            require.ensure([], () => resolve(require('./components/Chat.vue')), 'chat');
+        }
     }]
+})
+
+var socket = {};
+connect(); // 自动连接
+
+var uid = 0
+var open_id = 0
+function connect() {
+    // 连接OR断开socket
+    if (!socket.readyState || socket.readyState != 1) {
+        socket = new WebSocket("ws://" + location.hostname +":9127");
+    } else {
+        socket.close();
+    }
+
+    socket.onopen = function() {
+        // Web Socket 已连接上，使用 send() 方法发送数据
+        console.log("Web Socket 已连接上");
+    };
+
+    socket.onmessage = function(evt) {
+        var res = JSON.parse(evt.data);
+        // console.log(res);
+        if (res.replymethod == 'login' && res.result == 1) {
+            console.log("login success", res);
+            store.state.contacts = res.data.contacts
+            store.state.uid = res.data.uid
+            router.push('contacts')
+        }
+
+        if (res.replymethod == 'send') {
+
+        } else if (res.replymethod == 'open') {
+            for (var i = 0; i < store.state.contacts.length; i++) {
+                if (store.state.contacts[i].cid == store.state.open_id) {
+                    store.state.contacts[i].unread = 0;
+                }
+            }
+
+            if (!res.data.msg_list) {
+                res.data.msg_list = []
+            }
+
+            store.state.msg_list = rev_arr(res.data.msg_list)
+            router.push('chat')
+            window.scrollTo(0, 900000)
+        } else if (res.replymethod == 'add') {
+            console.log("booking", res);
+        } else if (res.replymethod == 'pushmsg') {
+            console.log("pushmsg", res);
+
+            //if (res.data.send_id == store.state.open_id) {
+            var msg_data = {
+                msg: res.data.msg,
+                send_uid: res.data.send_id,
+                recv_uid: res.data.recv_id,
+            }
+            store.state.msg_list.push(msg_data)
+            window.scrollTo(0, 900000)
+            //}
+            //刷新联系人列表
+            for (var i = 0; i < store.state.contacts.length; i++) {
+                if (store.state.contacts[i].cid == res.data.send_id) {
+                    store.state.contacts[i].unread += 1;
+                }
+            }
+
+        }
+    };
+
+    socket.onclose = function() {
+        console.error("Web Socket 已经断开");
+    }
+}
+
+function rev_arr(arr) {
+    var newarr = []
+    for(var i=arr.length-1;i>=0;i--){
+        newarr.push(arr[i])
+    }
+    return newarr
+}
+
+
+const store = new Vuex.Store({
+    state: {
+        // 存放用户
+        socket: socket,
+        uid:uid,
+        open_id:open_id,
+        contacts: [],
+        msg_list:[],
+    }
 })
 
 new Vue({
     router: router,
     el: '#app',
+    store,
     render: h => h(App)
 })

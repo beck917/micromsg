@@ -1,9 +1,11 @@
 <template>
     <div id="app">
         <header class="header">
+            <!--
             <mu-appbar :title="current" class="common-top-bar">
                 <mu-icon-button icon="menu" slot="left"/>
             </mu-appbar>
+            -->
         </header>
         <router-view class="view"></router-view>
         <footer class="footer">
@@ -110,4 +112,16 @@ body {
     .common-top-bar{
         /*text-align: center;*/
     }
+</style>
+
+<style lang="stylus" rel="stylesheet/stylus">
+    #app
+        width: 100%
+        min-height: 100%
+        .bottom
+            position: fixed
+            bottom: 0
+            width: 100%
+
+
 </style>
