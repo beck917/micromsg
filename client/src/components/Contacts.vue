@@ -3,40 +3,12 @@
         <mobile-tear-sheet>
             <mu-list>
                 <mu-sub-header>最近聊天记录</mu-sub-header>
-                <mu-list-item title="Mike Li" @click="open">
-                    <mu-avatar src="/images/a1.jpg" slot="leftAvatar"/>
-                    <mu-icon value="chat_bubble" slot="right"/>
+                <template v-for="item in this.$store.state.contacts">
+                <mu-list-item :title="item.cname" @click="open(item.cid)">
+                    <mu-avatar :src="'/dist/images/a'+item.cid+'.jpg'" slot="leftAvatar"/>
+                    <mu-badge :content="item.unread" circle secondary slot="right"/>
                 </mu-list-item>
-                <mu-list-item title="Maco Mai">
-                    <mu-avatar src="../assets/avatar/a2.jpg" slot="leftAvatar"/>
-                    <mu-icon value="chat_bubble" slot="right"/>
-                </mu-list-item>
-                <mu-list-item title="Alex Qin">
-                    <mu-avatar src="/avatar/a3.jpg" slot="leftAvatar"/>
-                    <mu-badge content="12" secondary slot="right"/>
-                </mu-list-item>
-                <mu-list-item title="Allen Qun">
-                    <mu-avatar src="/avatar/a4.jpg" slot="leftAvatar"/>
-                    <mu-badge content="12" circle secondary slot="right"/>
-                </mu-list-item>
-                <mu-list-item title="Myron Liu">
-                    <mu-avatar src="/avatar/a5.jpg" slot="leftAvatar"/>
-                    <mu-badge content="12" circle secondary slot="right">
-                        <mu-icon-button icon="chat_bubble"/>
-                    </mu-badge>
-                </mu-list-item>
-            </mu-list>
-            <mu-divider/>
-            <mu-list>
-                <mu-sub-header>历史聊天记录</mu-sub-header>
-                <mu-list-item title="Gaia Zhou">
-                    <mu-avatar src="/images/avatar5.jpg" slot="leftAvatar"/>
-                    <mu-icon value="chat_bubble" slot="right"/>
-                </mu-list-item>
-                <mu-list-item title="Miller Wang">
-                    <mu-avatar src="/images/avatar6.jpg" slot="leftAvatar"/>
-                    <mu-icon value="chat_bubble" slot="right"/>
-                </mu-list-item>
+                </template>
             </mu-list>
         </mobile-tear-sheet>
         <mu-dialog :open="dialog" @close="close" title="聊天" scrollable>
@@ -66,9 +38,18 @@
             }
         },
         methods: {
-            open() {
+            open(open_id) {
                 this.dialog = false
-                this.$router.push("chat")
+                this.$store.state.open_id = open_id
+
+                if (open_id != 0) {
+                    var data = {
+                        method: "open",
+                        open_id: open_id,
+                    }
+
+                    this.$store.state.socket.send(JSON.stringify(data));
+                }
             },
             close() {
                 this.dialog = false

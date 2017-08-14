@@ -99,6 +99,8 @@ const router = new VueRouter({
 var socket = {};
 connect(); // 自动连接
 
+var uid = 0
+var open_id = 0
 function connect() {
     // 连接OR断开socket
     if (!socket.readyState || socket.readyState != 1) {
@@ -118,15 +120,47 @@ function connect() {
         if (res.replymethod == 'login' && res.result == 1) {
             console.log("login success", res);
             store.state.contacts = res.data.contacts
+            store.state.uid = res.data.uid
             router.push('contacts')
         }
 
         if (res.replymethod == 'send') {
 
         } else if (res.replymethod == 'open') {
+            for (var i = 0; i < store.state.contacts.length; i++) {
+                if (store.state.contacts[i].cid == store.state.open_id) {
+                    store.state.contacts[i].unread = 0;
+                }
+            }
 
+            if (!res.data.msg_list) {
+                res.data.msg_list = []
+            }
+
+            store.state.msg_list = rev_arr(res.data.msg_list)
+            router.push('chat')
+            window.scrollTo(0, 900000)
         } else if (res.replymethod == 'add') {
             console.log("booking", res);
+        } else if (res.replymethod == 'pushmsg') {
+            console.log("pushmsg", res);
+
+            //if (res.data.send_id == store.state.open_id) {
+            var msg_data = {
+                msg: res.data.msg,
+                send_uid: res.data.send_id,
+                recv_uid: res.data.recv_id,
+            }
+            store.state.msg_list.push(msg_data)
+            window.scrollTo(0, 900000)
+            //}
+            //刷新联系人列表
+            for (var i = 0; i < store.state.contacts.length; i++) {
+                if (store.state.contacts[i].cid == res.data.send_id) {
+                    store.state.contacts[i].unread += 1;
+                }
+            }
+
         }
     };
 
@@ -135,11 +169,23 @@ function connect() {
     }
 }
 
+function rev_arr(arr) {
+    var newarr = []
+    for(var i=arr.length-1;i>=0;i--){
+        newarr.push(arr[i])
+    }
+    return newarr
+}
+
+
 const store = new Vuex.Store({
     state: {
         // 存放用户
         socket: socket,
-        contacts: []
+        uid:uid,
+        open_id:open_id,
+        contacts: [],
+        msg_list:[],
     }
 })
 

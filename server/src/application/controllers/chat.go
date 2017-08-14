@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"application/entities"
 	"application/libraries/constant"
 	"application/libraries/helpers"
 	"application/libraries/logger"
@@ -18,7 +19,7 @@ func OnMessageHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	jsonObj, jsonErr := simplejson.NewJson(req.Content)
 	if jsonErr != nil {
 		//记录错误
-		logger.WithField("header", req.Header).Error("json error")
+		logger.WithField("content", req.Content).Error("json error")
 		return
 	}
 
@@ -42,6 +43,7 @@ type LoginJson struct {
 
 type RetLoginData struct {
 	Contacts []*Contact `json:"contacts"`
+	Uid      int        `json:"uid"`
 }
 
 type Contact struct {
@@ -59,6 +61,8 @@ func LoginHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	if jsonErr != nil {
 		//记录错误
 		logger.WithField("controller", "login").Error(jsonErr)
+		retjson, _ := retJson("login", "数据格式错误", 10003, nil)
+		returnMsg(req.Header.ClientId, retjson)
 		return
 	}
 
@@ -93,11 +97,13 @@ func LoginHandler(client *pillx.Response, protocol pillx.IProtocol) {
 		contact := &Contact{}
 		contact.Cid = data.Cid
 		contact.Cname = data.Cname
+		contact.Unread = data.Unread
 		contacts = append(contacts, contact)
 	}
 
 	retLoginData := &RetLoginData{}
 	retLoginData.Contacts = contacts
+	retLoginData.Uid = userModel.UserEntity.Id
 
 	retjson, _ := retJson("login", "登陆成功", 1, retLoginData)
 	returnMsg(req.Header.ClientId, retjson)
@@ -113,17 +119,96 @@ func SendHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	req := protocol.(*pillx.GateWayProtocol)
 
 	//解析content
-	var jsonData SendJson
+	jsonData := &SendJson{}
 	jsonErr := json.Unmarshal(req.Content, jsonData)
 	if jsonErr != nil {
 		//记录错误
-		logger.WithField("controller", "send").Error("json error")
+		retjson, _ := retJson("send", "数据格式错误", 90001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "send").Error(jsonErr)
 		return
 	}
+
+	uid := helpers.GlobalClientIdBindUid[req.Header.ClientId]
+	if uid == 0 {
+		//记录错误
+		retjson, _ := retJson("send", "用户没有登录", 90002, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "send").Error("")
+		return
+	}
+
+	if helpers.GlobalUidBindClientId[jsonData.RecvId] != nil {
+		jsonPushData := &SendJson{}
+		jsonPushData.SendId = jsonData.SendId
+		jsonPushData.RecvId = jsonData.RecvId
+		jsonPushData.Msg = jsonData.Msg
+
+		retjson, _ := retJson("pushmsg", "推送信息", 1, jsonPushData)
+		returnMsg(helpers.GlobalUidBindClientId[jsonData.RecvId].ClientId, retjson)
+	}
+
+	userMsgModel := models.NewUserMsg()
+	userMsgModel.UserMsgEntity.Id = 0
+	userMsgModel.UserMsgEntity.Msg = jsonData.Msg
+	userMsgModel.UserMsgEntity.SendUid = uid
+	userMsgModel.UserMsgEntity.RecvUid = jsonData.RecvId
+	userMsgModel.UserMsgEntity.CreatedTime = entities.JsonTime(time.Now())
+	userMsgModel.UserMsgEntity.UpdatedTime = entities.JsonTime(time.Now())
+	userMsgModel.UserMsgEntity.DeletedTime = 0
+	userMsgModel.Insert(userMsgModel.UserMsgEntity)
+
+	//记录条数
+	userContactsModel := models.NewUserContacts()
+	userContactsModel.UpdateUnread(jsonData.RecvId, uid, 1)
+
+	retjson, _ := retJson("send", "发送成功", 1, nil)
+	returnMsg(req.Header.ClientId, retjson)
+}
+
+type OpenJson struct {
+	OpenId int `json:"open_id"`
+}
+
+type RetOpenData struct {
+	MsgList []*entities.UserMsg `json:"msg_list"`
 }
 
 func OpenHandler(client *pillx.Response, protocol pillx.IProtocol) {
+	req := protocol.(*pillx.GateWayProtocol)
 
+	//解析content
+	jsonData := &OpenJson{}
+	jsonErr := json.Unmarshal(req.Content, jsonData)
+	if jsonErr != nil {
+		//记录错误
+		retjson, _ := retJson("send", "数据格式错误", 90001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "send").Error(jsonErr)
+		return
+	}
+
+	uid := helpers.GlobalClientIdBindUid[req.Header.ClientId]
+	if uid == 0 {
+		//记录错误
+		retjson, _ := retJson("send", "用户没有登录", 90002, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "send").Error("")
+		return
+	}
+
+	//清除未读记录
+	userContactsModel := models.NewUserContacts()
+	userContactsModel.UpdateUnread(uid, jsonData.OpenId, 0)
+
+	userMsgModel := models.NewUserMsg()
+	msgList, _ := userMsgModel.GetMsgListByUid(uid, jsonData.OpenId, 0, 20)
+
+	retOpenData := &RetOpenData{}
+	retOpenData.MsgList = msgList
+
+	retjson, _ := retJson("open", "打开成功", 1, retOpenData)
+	returnMsg(req.Header.ClientId, retjson)
 }
 
 func AddHandler(client *pillx.Response, protocol pillx.IProtocol) {

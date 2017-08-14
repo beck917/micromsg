@@ -5,16 +5,37 @@ import (
 	"application/libraries/helpers"
 )
 
-type User struct {
+type UserMsg struct {
 	helpers.Model
-	UserEntity *entities.UserMsg
+	UserMsgEntity *entities.UserMsg
 }
 
-func NewUser() *User {
+func NewUserMsg() *UserMsg {
 	user := new(UserMsg)
-	user.UserEntity = &entities.UserMsg{}
+	user.UserMsgEntity = &entities.UserMsg{}
 	user.Model.Construct("user_msg")
 	return user
+}
+
+func (this *UserMsg) GetMsgListByUid(uid int, open_id int, page int, pageSize int) (msgList []*entities.UserMsg, err error) {
+	userMsg := entities.UserMsg{}
+	rows, err := this.Model.DB.XORM.Where("(send_uid = ? and recv_uid = ? )or (recv_uid = ? and send_uid = ?) ", uid, open_id, uid, open_id).Desc("id").Limit(pageSize, page*pageSize).Rows(&userMsg)
+
+	if err != nil {
+		return
+	}
+
+	if rows != nil {
+		for rows.Next() {
+			userMsgRow := entities.UserMsg{}
+			err = rows.Scan(&userMsgRow)
+			if err != nil {
+				break
+			}
+			msgList = append(msgList, &userMsgRow)
+		}
+	}
+	return
 }
 
 func (this *UserMsg) Insert(user *entities.UserMsg) (int, error) {

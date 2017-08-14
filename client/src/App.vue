@@ -113,3 +113,15 @@ body {
         /*text-align: center;*/
     }
 </style>
+
+<style lang="stylus" rel="stylesheet/stylus">
+    #app
+        width: 100%
+        min-height: 100%
+        .bottom
+            position: fixed
+            bottom: 0
+            width: 100%
+
+
+</style>

@@ -21,8 +21,8 @@ var GlobalTomlConfig TomlConfig
 
 func init() {
 	var err error
-	//E:\Code\micromsg\server\bin\etc\config.toml etc/config.toml
-	GlobalTomlConfig, err = LoadTomlConfig("E:\\Code\\micromsg\\server\\bin\\etc\\config.toml")
+	//etc/config.toml
+	GlobalTomlConfig, err = LoadTomlConfig("etc/config.toml")
 	if err != nil {
 		panic(err)
 	}
