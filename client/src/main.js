@@ -142,6 +142,9 @@ function connect() {
         // console.log(res);
         if (res.replymethod == 'login' && res.result == 1) {
             console.log("login success", res);
+            if (!res.data.contacts) {
+                res.data.contacts = []
+            }
             store.state.contacts = res.data.contacts
             store.state.uid = res.data.uid
             store.state.contacts.sort(compare("unread"))

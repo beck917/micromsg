@@ -25,7 +25,7 @@ func (this *UserMsg) GetMsgListByUid(uid int, open_id int, page int, pageSize in
 	if err != nil {
 		return
 	}
-
+	msgList = make([]*entities.UserMsg, 0)
 	if rows != nil {
 		for rows.Next() {
 			userMsgRow := entities.UserMsg{}

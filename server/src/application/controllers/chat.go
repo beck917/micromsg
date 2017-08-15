@@ -118,7 +118,7 @@ func LoginHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	userContactsModel := models.NewUserContacts()
 	contactsList, _ := userContactsModel.GetContactsListByUid(userModel.UserEntity.Id)
 
-	var contacts []*Contact
+	var contacts []*Contact = make([]*Contact, 0)
 	for _, data := range contactsList {
 		contact := &Contact{}
 		contact.Cid = data.Cid
