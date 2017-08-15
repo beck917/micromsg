@@ -20,4 +20,4 @@ temporary for liulishuo
 2. start gateway ./gateway ../bin/etc/config.toml
 3. start worker ./worker ../bin/etc/config.toml
 
-##enjoy fun
+## enjoy fun
