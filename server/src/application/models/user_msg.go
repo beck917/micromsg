@@ -3,6 +3,7 @@ package models
 import (
 	"application/entities"
 	"application/libraries/helpers"
+	"time"
 )
 
 type UserMsg struct {
@@ -19,7 +20,7 @@ func NewUserMsg() *UserMsg {
 
 func (this *UserMsg) GetMsgListByUid(uid int, open_id int, page int, pageSize int) (msgList []*entities.UserMsg, err error) {
 	userMsg := entities.UserMsg{}
-	rows, err := this.Model.DB.XORM.Where("(send_uid = ? and recv_uid = ? )or (recv_uid = ? and send_uid = ?) ", uid, open_id, uid, open_id).Desc("id").Limit(pageSize, page*pageSize).Rows(&userMsg)
+	rows, err := this.Model.DB.XORM.Where("((send_uid = ? and recv_uid = ? ) or (recv_uid = ? and send_uid = ?)) and deleted_time = 0", uid, open_id, uid, open_id).Desc("id").Limit(pageSize, page*pageSize).Rows(&userMsg)
 
 	if err != nil {
 		return
@@ -40,6 +41,14 @@ func (this *UserMsg) GetMsgListByUid(uid int, open_id int, page int, pageSize in
 
 func (this *UserMsg) Insert(user *entities.UserMsg) (int, error) {
 	affected, err := this.Model.DB.XORM.Insert(user)
+
+	return int(affected), err
+}
+
+func (this *UserMsg) DeleteMsgById(id int) (int, error) {
+	userMsg := &entities.UserMsg{}
+	userMsg.DeletedTime = int(time.Now().Unix())
+	affected, err := this.Model.DB.XORM.Id(id).Update(userMsg)
 
 	return int(affected), err
 }

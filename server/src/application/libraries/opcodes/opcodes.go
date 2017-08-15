@@ -8,3 +8,4 @@ const APP_ADD uint16 = 0x4797        //添加好友
 const APP_OPEN uint16 = 0x2c83       //打开
 const APP_DELETE uint16 = 0xfdd7     //删除联系人
 const APP_DELETE_MSG uint16 = 0x7f6b //删除消息
+const APP_REGISTER uint16 = 0xa485   //注册

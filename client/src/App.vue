@@ -7,6 +7,9 @@
             </mu-appbar>
             -->
         </header>
+        <mu-popup position="top" :overlay="false" popupClass="demo-popup-top" :open="this.$store.state.poptop">
+            {{this.$store.state.popmsg}}
+        </mu-popup>
         <router-view class="view"></router-view>
         <footer class="footer">
             <!--
@@ -82,6 +85,17 @@ body {
     /* 和 header 一样，footer 也采用固定高度*/
     /* 0 flex-grow, 0 flex-shrink, auto flex-basis */
     flex: 0 0 auto;
+}
+
+.demo-popup-top {
+    width: 100%;
+    opacity: .8;
+    height: 48px;
+    line-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 375px;
 }
 
 

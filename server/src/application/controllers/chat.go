@@ -10,9 +10,27 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/beck917/pillX/pillx"
 	"github.com/bitly/go-simplejson"
 )
+
+func OnClientCloseHandler(client *pillx.Response, protocol pillx.IProtocol) {
+	req := protocol.(*pillx.GateWayProtocol)
+
+	delete(helpers.GlobalUidBindClientId, helpers.GlobalClientIdBindUid[req.Header.ClientId])
+	delete(helpers.GlobalClientIdBindUid, req.Header.ClientId)
+	logger.Info("客户端断开")
+}
+
+func OnClientCloseWorkerHandler(client *pillx.Response, protocol pillx.IProtocol) {
+	req := protocol.(*pillx.GateWayProtocol)
+
+	//清除数据
+	delete(helpers.GlobalUidBindClientId, helpers.GlobalClientIdBindUid[req.Header.ClientId])
+	delete(helpers.GlobalClientIdBindUid, req.Header.ClientId)
+	logger.Info("客户端worker断开")
+}
 
 func OnMessageHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	req := protocol.(*pillx.GateWayProtocol)
@@ -37,8 +55,8 @@ func OnMessageHandler(client *pillx.Response, protocol pillx.IProtocol) {
 }
 
 type LoginJson struct {
-	UserName string `json:"username"`
-	PassWord string `json:"password"`
+	UserName string `json:"username" valid:"length(5|30)"`
+	PassWord string `json:"password" valid:"length(6|30)"`
 }
 
 type RetLoginData struct {
@@ -61,7 +79,15 @@ func LoginHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	if jsonErr != nil {
 		//记录错误
 		logger.WithField("controller", "login").Error(jsonErr)
-		retjson, _ := retJson("login", "数据格式错误", 10003, nil)
+		retjson, _ := retJson("login", "数据格式错误", 90001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		return
+	}
+
+	_, err := govalidator.ValidateStruct(jsonData)
+	if err != nil {
+		logger.WithField("controller", "login").Error(err)
+		retjson, _ := retJson("login", err.Error(), 90004, nil)
 		returnMsg(req.Header.ClientId, retjson)
 		return
 	}
@@ -109,10 +135,60 @@ func LoginHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	returnMsg(req.Header.ClientId, retjson)
 }
 
+func RegisterHandler(client *pillx.Response, protocol pillx.IProtocol) {
+	req := protocol.(*pillx.GateWayProtocol)
+
+	//解析content
+	jsonData := &LoginJson{}
+	jsonErr := json.Unmarshal(req.Content, jsonData)
+	if jsonErr != nil {
+		//记录错误
+		logger.WithField("controller", "register").Error(jsonErr)
+		retjson, _ := retJson("register", "数据格式错误", 90001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		return
+	}
+
+	_, err := govalidator.ValidateStruct(jsonData)
+	if err != nil {
+		logger.WithField("controller", "register").Error(err)
+		retjson, _ := retJson("register", err.Error(), 90004, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		return
+	}
+
+	userModel := models.NewUser()
+	has, _ := userModel.GetUserByName(jsonData.UserName)
+
+	if has == true {
+		//返回错误
+		retjson, _ := retJson("register", "用户名已存在", 10001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		return
+	}
+
+	userModel.UserEntity.Id = 0
+	userModel.UserEntity.Name = jsonData.UserName
+	userModel.UserEntity.Password = helpers.Sha1Str(jsonData.PassWord + constant.PASSWORD_SALT)
+	userModel.UserEntity.CreatedTime = entities.JsonTime(time.Now())
+	userModel.UserEntity.UpdatedTime = entities.JsonTime(time.Now())
+	userModel.Insert(userModel.UserEntity)
+
+	retjson, _ := retJson("register", "注册成功", 1, nil)
+	returnMsg(req.Header.ClientId, retjson)
+}
+
 type SendJson struct {
 	SendId int    `json:"send_id"`
 	RecvId int    `json:"recv_id"`
 	Msg    string `json:"msg"`
+}
+
+type PushJson struct {
+	SendId  int      `json:"send_id"`
+	RecvId  int      `json:"recv_id"`
+	Msg     string   `json:"msg"`
+	Contact *Contact `json:"contact"`
 }
 
 //发送消息
@@ -139,22 +215,12 @@ func SendHandler(client *pillx.Response, protocol pillx.IProtocol) {
 		return
 	}
 
-	if helpers.GlobalUidBindClientId[jsonData.RecvId] != nil {
-		jsonPushData := &SendJson{}
-		jsonPushData.SendId = jsonData.SendId
-		jsonPushData.RecvId = jsonData.RecvId
-		jsonPushData.Msg = jsonData.Msg
-
-		retjson, _ := retJson("pushmsg", "推送信息", 1, jsonPushData)
-		returnMsg(helpers.GlobalUidBindClientId[jsonData.RecvId].ClientId, retjson)
-	}
-
 	//判断A是否是B的联系人
 	userContactsModel := models.NewUserContacts()
 	has, _ := userContactsModel.GetContactByUidCid(jsonData.RecvId, uid)
+	userModel := models.NewUser()
 	if has == false {
-		userModel := models.NewUser()
-		userModel.GetUserById(jsonData.RecvId)
+		userModel.GetUserById(uid)
 		//添加联系人
 		userContactsEntity := userContactsModel.UserContactsEntity
 		userContactsEntity.Id = 0
@@ -165,6 +231,24 @@ func SendHandler(client *pillx.Response, protocol pillx.IProtocol) {
 		userContactsEntity.CreatedTime = entities.JsonTime(time.Now())
 		userContactsEntity.UpdatedTime = entities.JsonTime(time.Now())
 		userContactsModel.Insert(userContactsEntity)
+	}
+
+	if helpers.GlobalUidBindClientId[jsonData.RecvId] != nil {
+		jsonPushData := &PushJson{}
+		jsonPushData.SendId = jsonData.SendId
+		jsonPushData.RecvId = jsonData.RecvId
+		jsonPushData.Msg = jsonData.Msg
+
+		if has == false {
+			contact := &Contact{}
+			contact.Cid = uid
+			contact.Cname = userModel.UserEntity.Name
+			contact.Unread = 1
+			jsonPushData.Contact = contact
+		}
+
+		retjson, _ := retJson("pushmsg", "推送信息", 1, jsonPushData)
+		returnMsg(helpers.GlobalUidBindClientId[jsonData.RecvId].ClientId, retjson)
 	}
 
 	userMsgModel := models.NewUserMsg()
@@ -338,9 +422,45 @@ func DeleteHandler(client *pillx.Response, protocol pillx.IProtocol) {
 	returnMsg(req.Header.ClientId, retjson)
 }
 
+type DeleteMsgJson struct {
+	Id int `json:"id"`
+}
+
 //删除消息
 func DeleteMsgHandler(client *pillx.Response, protocol pillx.IProtocol) {
+	req := protocol.(*pillx.GateWayProtocol)
 
+	//解析content
+	jsonData := &DeleteMsgJson{}
+	jsonErr := json.Unmarshal(req.Content, jsonData)
+	if jsonErr != nil {
+		//记录错误
+		retjson, _ := retJson("delete_msg", "数据格式错误", 90001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "delete_msg").Error(jsonErr)
+		return
+	}
+
+	uid := helpers.GlobalClientIdBindUid[req.Header.ClientId]
+	if uid == 0 {
+		//记录错误
+		retjson, _ := retJson("delete_msg", "用户没有登录", 90002, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		logger.WithField("controller", "delete_msg").Error("")
+		return
+	}
+
+	userMsgModel := models.NewUserMsg()
+	_, err := userMsgModel.DeleteMsgById(jsonData.Id)
+	if err != nil {
+		logger.WithField("controller", "delete_msg").Error(err)
+		retjson, _ := retJson("delete_msg", "删除失败", 50001, nil)
+		returnMsg(req.Header.ClientId, retjson)
+		return
+	}
+
+	retjson, _ := retJson("delete_msg", "删除消息成功", 1, nil)
+	returnMsg(req.Header.ClientId, retjson)
 }
 
 type RetJson struct {

@@ -11,6 +11,10 @@
             <mu-text-field label="密码" hintText="请输入密码" name="password" type="password" labelFloat icon="comment"/><br/>
             <mu-raised-button label="登录" v-on:click="login" class="demo-raised-button"/>
             </form>
+            <br />
+            <div @click="register" class="tip-user">
+                注册帐号
+            </div>
         </div>
     </section>
 </template>
@@ -32,6 +36,9 @@
 
                 this.$store.state.socket.send(JSON.stringify(data));
             }
+        },
+        register() {
+            this.$router.push("reg")
         }
     }
 }

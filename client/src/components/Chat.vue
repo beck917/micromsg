@@ -11,7 +11,7 @@
                 <div v-for="obj in this.$store.state.msg_list">
                     <othermsg v-if="obj.send_uid != uid" :head="'/dist/images/a'+obj.send_uid+'.jpg'" :msg="obj.msg"
                               ></othermsg>
-                    <mymsg v-if="obj.send_uid == uid" :head="'/dist/images/a'+obj.send_uid+'.jpg'" :msg="obj.msg"
+                    <mymsg v-if="obj.send_uid == uid" :id="obj.id" :head="'/dist/images/a'+obj.send_uid+'.jpg'" :msg="obj.msg"
                     ></mymsg>
                 </div>
                 <div style="height:200px"></div>

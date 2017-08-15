@@ -16,6 +16,7 @@ import dialog from 'muse-components/dialog'
 import divider from 'muse-components/divider'
 import badge from 'muse-components/badge'
 import subHeader from 'muse-components/subHeader'
+import popup from 'muse-components/popup'
 //import iconMenu from 'muse-components/iconMenu'
 //import {menu, menuItem} from 'muse-components/menu'
 import { card, cardTitle, cardMedia, cardText, cardActions, cardHeader } from 'muse-components/card'
@@ -66,6 +67,7 @@ Vue.component(list.name, list)
 Vue.component(listItem.name, listItem)
 Vue.component(tabs.name, tabs)
 Vue.component(tab.name, tab)
+Vue.component(popup.name, popup)
 //Vue.component(iconMenu.name, iconMenu)
 //Vue.component(menuItem.name, menuItem)
 //Vue.component(menu.name, menu)
@@ -98,6 +100,16 @@ const router = new VueRouter({
         component: (resolve) => {
             require.ensure([], () => resolve(require('./components/Chat.vue')), 'chat');
         }
+    }, {
+        path: '/reg',
+        component: (resolve) => {
+            require.ensure([], () => resolve(require('./components/Reg.vue')), 'reg');
+        }
+    }, {
+        path: '/login',
+        component: (resolve) => {
+            require.ensure([], () => resolve(require('./components/Login.vue')), 'login');
+        }
     }]
 })
 
@@ -122,60 +134,85 @@ function connect() {
 
     socket.onmessage = function(evt) {
         var res = JSON.parse(evt.data);
+        store.state.poptop = true
+        store.state.popmsg = res.msg
+        setTimeout(() => {
+            store.state.poptop = false
+        }, 1500)
         // console.log(res);
         if (res.replymethod == 'login' && res.result == 1) {
             console.log("login success", res);
             store.state.contacts = res.data.contacts
             store.state.uid = res.data.uid
+            store.state.contacts.sort(compare("unread"))
             router.push('contacts')
         }
 
-        if (res.replymethod == 'send') {
-            console.log("send", res);
-        } else if (res.replymethod == 'open') {
-            console.log("open", res);
-            for (var i = 0; i < store.state.contacts.length; i++) {
-                if (store.state.contacts[i].cid == store.state.open_id) {
-                    store.state.contacts[i].unread = 0;
+        if(res.result == 1) {
+            if (res.replymethod == 'send') {
+                console.log("send", res);
+            } else if (res.replymethod == 'register') {
+                console.log("reg", res);
+                router.push("login");
+            } else if (res.replymethod == 'open') {
+                console.log("open", res);
+                for (var i = 0; i < store.state.contacts.length; i++) {
+                    if (store.state.contacts[i].cid == store.state.open_id) {
+                        store.state.contacts[i].unread = 0;
+                    }
                 }
-            }
 
-            if (!res.data.msg_list) {
-                res.data.msg_list = []
-            }
-
-            store.state.msg_list = rev_arr(res.data.msg_list)
-            router.push('chat')
-        } else if (res.replymethod == 'add') {
-            console.log("add", res);
-            store.state.contacts.push(res.data.contact);
-        } else if (res.replymethod == 'delete') {
-            console.log("delete", res);
-            for (var i = 0; i < store.state.contacts.length; i++) {
-                if (store.state.contacts[i].cid == store.state.open_id) {
-                    store.state.contacts.splice(i, 1)
+                if (!res.data.msg_list) {
+                    res.data.msg_list = []
                 }
-            }
-            store.state.open_id = 0
-        } else if (res.replymethod == 'pushmsg') {
-            console.log("pushmsg", res);
 
-            if (res.data.send_id == store.state.open_id) {
-                var msg_data = {
-                    msg: res.data.msg,
-                    send_uid: res.data.send_id,
-                    recv_uid: res.data.recv_id,
+                store.state.msg_list = rev_arr(res.data.msg_list)
+                router.push('chat')
+            } else if (res.replymethod == 'add') {
+                console.log("add", res);
+                if (!store.state.contacts) {
+                    store.state.contacts = [res.data.contact]
+                } else {
+                    store.state.contacts.push(res.data.contact);
                 }
-                store.state.msg_list.push(msg_data)
-                window.scrollTo(0, 900000)
-            }
-            //刷新联系人列表
-            for (var i = 0; i < store.state.contacts.length; i++) {
-                if (store.state.contacts[i].cid == res.data.send_id) {
-                    store.state.contacts[i].unread += 1;
+            } else if (res.replymethod == 'delete') {
+                console.log("delete", res);
+                for (var i = 0; i < store.state.contacts.length; i++) {
+                    if (store.state.contacts[i].cid == store.state.open_id) {
+                        store.state.contacts.splice(i, 1)
+                    }
                 }
-            }
+                store.state.open_id = 0
+            } else if (res.replymethod == 'delete_msg') {
+                console.log("delete_msg", res);
+                for (var i = 0; i < store.state.msg_list.length; i++) {
+                    if (store.state.msg_list[i].id == store.state.msg_id) {
+                        store.state.msg_list.splice(i, 1)
+                    }
+                }
+            } else if (res.replymethod == 'pushmsg') {
+                console.log("pushmsg", res);
 
+                if (res.data.send_id == store.state.open_id) {
+                    var msg_data = {
+                        msg: res.data.msg,
+                        send_uid: res.data.send_id,
+                        recv_uid: res.data.recv_id,
+                    }
+                    store.state.msg_list.push(msg_data)
+                    window.scrollTo(0, 900000)
+                }
+                //刷新联系人列表
+                for (var i = 0; i < store.state.contacts.length; i++) {
+                    if (store.state.contacts[i].cid == res.data.send_id) {
+                        store.state.contacts[i].unread += 1;
+                    }
+                }
+                if (res.data.contact) {
+                    store.state.contacts.push(res.data.contact)
+                }
+                store.state.contacts.sort(compare("unread"))
+            }
         }
     };
 
@@ -192,6 +229,19 @@ function rev_arr(arr) {
     return newarr
 }
 
+var compare = function (prop) {
+    return function (obj1, obj2) {
+        var val1 = obj1[prop];
+        var val2 = obj2[prop];
+        if (val1 < val2) {
+            return 1;
+        } else if (val1 > val2) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+}
 
 const store = new Vuex.Store({
     state: {
@@ -201,6 +251,9 @@ const store = new Vuex.Store({
         open_id:open_id,
         contacts: [],
         msg_list:[],
+        poptop:false,
+        popmsg:"test",
+        msg_id:0,
     }
 })
 

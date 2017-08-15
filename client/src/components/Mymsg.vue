@@ -12,12 +12,25 @@
                 {{msg}}
             </span>
         </div>
+        <mu-icon-button icon="delete" @click="del(id)" slot="right"/>
     </div>
 </template>
 
 <script type="text/ecmascript-6">
 export default{
-    props: ['name', 'img', 'msg', 'head']
+    props: ['name', 'img', 'msg', 'head','id'],
+    methods: {
+        del(open_id) {
+            if (open_id != 0) {
+                this.$store.state.msg_id = open_id
+                var data = {
+                    method: "delete_msg",
+                    id: open_id,
+                }
+                this.$store.state.socket.send(JSON.stringify(data));
+            }
+        }
+    }
 }
 </script>
 
