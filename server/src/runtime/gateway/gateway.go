@@ -22,7 +22,10 @@ func main() {
 		panic(err)
 	}
 
-	etcdClient := helpers.EtcdDail(tomlConfig.Etcd)
+	etcdClient, etcdError := helpers.EtcdDail(tomlConfig.Etcd)
+	if etcdError != nil {
+		panic(etcdError)
+	}
 
 	gateway := &pillx.GatewayWebsocket{
 		InnerAddr:   fmt.Sprintf("%s:%d", tomlConfig.Pillx.GatewayInnerHost, tomlConfig.Pillx.GatewayInnerPort),

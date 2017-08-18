@@ -10,7 +10,7 @@ type Model struct {
 }
 
 func (this *Model) Construct(tableName string) {
-	this.DB = InstanceDatabase(toml.GlobalTomlConfig.Mysql)
+	this.DB, _ = InstanceDatabase(toml.GlobalTomlConfig.Mysql)
 
 	this.TableName = tableName
 }

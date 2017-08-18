@@ -25,7 +25,10 @@ func main() {
 		panic(err)
 	}
 
-	etcdClient := helpers.EtcdDail(tomlConfig.Etcd)
+	etcdClient, etcdError := helpers.EtcdDail(tomlConfig.Etcd)
+	if etcdError != nil {
+		panic(etcdError)
+	}
 
 	worker := &pillx.Worker{
 		InnerAddr:  fmt.Sprintf("%s:%d", tomlConfig.Pillx.WorkerInnerHost, tomlConfig.Pillx.WorkerInnerPort),

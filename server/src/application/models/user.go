@@ -31,8 +31,5 @@ func (this *User) GetUserById(id int) (has bool, err error) {
 
 func (this *User) Insert(user *entities.User) (int, error) {
 	affected, err := this.Model.DB.XORM.Insert(user)
-	if err != nil {
-		panic(err)
-	}
 	return int(affected), err
 }
